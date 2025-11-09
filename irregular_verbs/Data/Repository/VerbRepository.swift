@@ -28,11 +28,36 @@ final class VerbRepository: VerbRepositoryProtocol, ObservableObject {
             return
         }
         
-        guard let url = Bundle.main.url(forResource: "all", withExtension: "json", subdirectory: "Resources/verbs") else {
+        // Try different possible paths for JSON file
+        var url = Bundle.main.url(forResource: "all", withExtension: "json", subdirectory: "Resources/verbs")
+        
+        if url == nil {
+            // Try without Resources prefix
+            url = Bundle.main.url(forResource: "all", withExtension: "json", subdirectory: "verbs")
+        }
+        
+        if url == nil {
+            // Try in root
+            url = Bundle.main.url(forResource: "all", withExtension: "json")
+        }
+        
+        guard let jsonURL = url else {
+            #if DEBUG
+            // Debug: Print available bundle paths
+            if let bundlePath = Bundle.main.resourcePath {
+                print("Bundle resource path: \(bundlePath)")
+                print("Available files in bundle:")
+                if let files = try? FileManager.default.contentsOfDirectory(atPath: bundlePath) {
+                    for file in files {
+                        print("  - \(file)")
+                    }
+                }
+            }
+            #endif
             throw VerbRepositoryError.jsonFileNotFound
         }
         
-        let data = try Data(contentsOf: url)
+        let data = try Data(contentsOf: jsonURL)
         let verbs = try JSONDecoder().decode([Verb].self, from: data)
         
         for verb in verbs {
