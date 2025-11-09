@@ -57,14 +57,27 @@ final class VerbRepository: VerbRepositoryProtocol, ObservableObject {
             throw VerbRepositoryError.jsonFileNotFound
         }
         
-        let data = try Data(contentsOf: jsonURL)
-        let verbs = try JSONDecoder().decode([Verb].self, from: data)
+        // Read and decode JSON on background thread to avoid blocking UI
+        let verbs = try await Task.detached(priority: .userInitiated) {
+            let data = try Data(contentsOf: jsonURL)
+            return try JSONDecoder().decode([Verb].self, from: data)
+        }.value
         
-        for verb in verbs {
+        // Insert verbs in batches to avoid blocking the main thread
+        let batchSize = 20
+        for (index, verb) in verbs.enumerated() {
             let verbEntity = VerbMapper.toEntity(verb)
             modelContext.insert(verbEntity)
+            
+            // Save every batchSize items and yield to main thread
+            if (index + 1) % batchSize == 0 {
+                try modelContext.save()
+                // Yield to allow UI updates
+                await Task.yield()
+            }
         }
         
+        // Final save for remaining items
         try modelContext.save()
         print("Successfully loaded \(verbs.count) verbs from JSON")
     }
