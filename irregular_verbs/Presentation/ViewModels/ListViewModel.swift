@@ -97,7 +97,6 @@ final class ListViewModel: ObservableObject {
     
     func playAudio(for word: Word) {
         guard let mp3URL = word.mp3URL else {
-            print("MP3 file not found for: \(word.content)")
             return
         }
         audioPlayerService.playAudio(from: mp3URL)

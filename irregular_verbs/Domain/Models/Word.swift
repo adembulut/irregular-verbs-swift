@@ -30,18 +30,43 @@ struct Word: Codable, Identifiable {
         try container.encode(voiceUrl, forKey: .voiceUrl)
     }
     
-    // Get MP3 file name from voiceUrl
-    var mp3FileName: String? {
-        URL(string: voiceUrl)?.lastPathComponent
+    // Get MP3 file name from voiceUrl (voiceUrl is already just the filename)
+    var mp3FileName: String {
+        voiceUrl
     }
     
     // Get MP3 URL from bundle
     var mp3URL: URL? {
-        guard let fileName = mp3FileName else { return nil }
-        let nameWithoutExtension = fileName.replacingOccurrences(of: ".mp3", with: "")
-        return Bundle.main.url(forResource: nameWithoutExtension, 
-                              withExtension: "mp3", 
-                              subdirectory: "Resources/verbs/mp3")
+        // Try direct path first (most reliable)
+        if let resourcePath = Bundle.main.resourcePath {
+            let filePath = "\(resourcePath)/Resources/verbs/mp3/\(mp3FileName)"
+            if FileManager.default.fileExists(atPath: filePath) {
+                return URL(fileURLWithPath: filePath)
+            }
+        }
+        
+        // Try with subdirectory
+        let nameWithoutExtension = mp3FileName.replacingOccurrences(of: ".mp3", with: "")
+        if let url = Bundle.main.url(forResource: nameWithoutExtension, 
+                                     withExtension: "mp3", 
+                                     subdirectory: "Resources/verbs/mp3") {
+            return url
+        }
+        
+        // Try without Resources prefix
+        if let url = Bundle.main.url(forResource: nameWithoutExtension, 
+                                     withExtension: "mp3", 
+                                     subdirectory: "verbs/mp3") {
+            return url
+        }
+        
+        // Try at root of bundle
+        if let url = Bundle.main.url(forResource: nameWithoutExtension, 
+                                     withExtension: "mp3") {
+            return url
+        }
+        
+        return nil
     }
 }
 
