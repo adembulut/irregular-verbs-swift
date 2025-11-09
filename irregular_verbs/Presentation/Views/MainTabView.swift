@@ -1,4 +1,5 @@
 import SwiftUI
+import SwiftData
 
 struct MainTabView: View {
     @Environment(\.modelContext) private var modelContext
@@ -33,7 +34,27 @@ struct MainTabView: View {
     private func makeListView() -> some View {
         let repository = VerbRepository(modelContext: modelContext)
         let getAllVerbsUseCase = GetAllVerbsUseCase(repository: repository)
-        let viewModel = ListViewModel(getAllVerbsUseCase: getAllVerbsUseCase)
+        let searchVerbsUseCase = SearchVerbsUseCase(repository: repository)
+        let getVerbsPaginatedUseCase = GetVerbsPaginatedUseCase(repository: repository)
+        let audioPlayerService = AudioPlayerService()
+        
+        let viewModel = ListViewModel(
+            getAllVerbsUseCase: getAllVerbsUseCase,
+            searchVerbsUseCase: searchVerbsUseCase,
+            getVerbsPaginatedUseCase: getVerbsPaginatedUseCase,
+            audioPlayerService: audioPlayerService
+        )
         return ListView(viewModel: viewModel)
     }
+}
+
+#Preview {
+    let config = ModelConfiguration(isStoredInMemoryOnly: true)
+    let container = try! ModelContainer(
+        for: VerbEntity.self, WordEntity.self, TranslationEntity.self,
+        configurations: config
+    )
+    
+    return MainTabView()
+        .modelContainer(container)
 }

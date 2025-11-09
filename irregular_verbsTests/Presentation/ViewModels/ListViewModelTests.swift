@@ -10,8 +10,16 @@ final class ListViewModelTests: XCTestCase {
     override func setUp() {
         super.setUp()
         mockRepository = MockVerbRepository()
-        let useCase = GetAllVerbsUseCase(repository: mockRepository)
-        sut = ListViewModel(getAllVerbsUseCase: useCase)
+        let getAllVerbsUseCase = GetAllVerbsUseCase(repository: mockRepository)
+        let searchVerbsUseCase = SearchVerbsUseCase(repository: mockRepository)
+        let getVerbsPaginatedUseCase = GetVerbsPaginatedUseCase(repository: mockRepository)
+        let audioPlayerService = AudioPlayerService()
+        sut = ListViewModel(
+            getAllVerbsUseCase: getAllVerbsUseCase,
+            searchVerbsUseCase: searchVerbsUseCase,
+            getVerbsPaginatedUseCase: getVerbsPaginatedUseCase,
+            audioPlayerService: audioPlayerService
+        )
     }
     
     override func tearDown() {
@@ -20,47 +28,44 @@ final class ListViewModelTests: XCTestCase {
         super.tearDown()
     }
     
-    func testLoadVerbs_WhenUseCaseSucceeds_ShouldUpdateVerbs() {
+    func testLoadInitialVerbs_WhenUseCaseSucceeds_ShouldUpdateVerbs() {
         // Given
         let expectedVerbs = createMockVerbs()
         mockRepository.verbsToReturn = expectedVerbs
         
         // When
-        sut.loadVerbs()
+        sut.loadInitialVerbs()
         
         // Then
         XCTAssertEqual(sut.verbs.count, expectedVerbs.count)
         XCTAssertFalse(sut.isLoading)
         XCTAssertNil(sut.errorMessage)
-        XCTAssertTrue(mockRepository.getAllVerbsCalled)
     }
     
-    func testLoadVerbs_WhenUseCaseFails_ShouldSetErrorMessage() {
+    func testLoadInitialVerbs_WhenUseCaseFails_ShouldSetErrorMessage() {
         // Given
         let expectedError = NSError(domain: "TestError", code: 1, userInfo: [NSLocalizedDescriptionKey: "Test error"])
         mockRepository.errorToThrow = expectedError
         
         // When
-        sut.loadVerbs()
+        sut.loadInitialVerbs()
         
         // Then
         XCTAssertTrue(sut.verbs.isEmpty)
         XCTAssertFalse(sut.isLoading)
         XCTAssertNotNil(sut.errorMessage)
-        XCTAssertTrue(mockRepository.getAllVerbsCalled)
     }
     
-    func testLoadVerbs_WhenLoading_ShouldSetIsLoadingToTrueThenFalse() {
+    func testLoadInitialVerbs_WhenLoading_ShouldSetIsLoadingToTrueThenFalse() {
         // Given
         let expectedVerbs = createMockVerbs()
         mockRepository.verbsToReturn = expectedVerbs
         
         // When
-        sut.loadVerbs()
+        sut.loadInitialVerbs()
         
         // Then - isLoading should be false after completion
         XCTAssertFalse(sut.isLoading)
-        XCTAssertTrue(mockRepository.getAllVerbsCalled)
     }
     
     // MARK: - Helper Methods

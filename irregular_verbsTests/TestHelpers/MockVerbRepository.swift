@@ -3,6 +3,7 @@ import Foundation
 
 // MARK: - Mock Repository for Testing
 
+@MainActor
 final class MockVerbRepository: VerbRepositoryProtocol {
     var verbsToReturn: [Verb] = []
     var errorToThrow: Error?
@@ -55,6 +56,32 @@ final class MockVerbRepository: VerbRepositoryProtocol {
             throw error
         }
         verbsToReturn.removeAll { $0.id == verb.id }
+    }
+    
+    func searchVerbs(query: String) throws -> [Verb] {
+        if let error = errorToThrow {
+            throw error
+        }
+        let lowercasedQuery = query.lowercased()
+        return verbsToReturn.filter { verb in
+            verb.original.content.lowercased().contains(lowercasedQuery) ||
+            verb.simplePast.content.lowercased().contains(lowercasedQuery) ||
+            verb.pastPerfect.content.lowercased().contains(lowercasedQuery) ||
+            verb.translationList.contains { translation in
+                translation.content.lowercased().contains(lowercasedQuery)
+            }
+        }
+    }
+    
+    func getVerbsPaginated(offset: Int, limit: Int) throws -> [Verb] {
+        if let error = errorToThrow {
+            throw error
+        }
+        let endIndex = min(offset + limit, verbsToReturn.count)
+        guard offset < verbsToReturn.count else {
+            return []
+        }
+        return Array(verbsToReturn[offset..<endIndex])
     }
 }
 

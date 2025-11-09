@@ -103,6 +103,38 @@ final class VerbRepository: VerbRepositoryProtocol, ObservableObject {
         modelContext.delete(entity)
         try modelContext.save()
     }
+    
+    func searchVerbs(query: String) throws -> [Verb] {
+        // SwiftData predicate limitations: fetch all and filter in memory
+        // For better performance with large datasets, consider using full-text search
+        let allEntities = try modelContext.fetch(
+            FetchDescriptor<VerbEntity>(
+                sortBy: [SortDescriptor(\.original.content)]
+            )
+        )
+        
+        let lowercasedQuery = query.lowercased()
+        let filteredEntities = allEntities.filter { entity in
+            entity.original.content.lowercased().contains(lowercasedQuery) ||
+            entity.simplePast.content.lowercased().contains(lowercasedQuery) ||
+            entity.pastPerfect.content.lowercased().contains(lowercasedQuery) ||
+            entity.translations.contains { translation in
+                translation.content.lowercased().contains(lowercasedQuery)
+            }
+        }
+        
+        return filteredEntities.map { VerbMapper.toDomain($0) }
+    }
+    
+    func getVerbsPaginated(offset: Int, limit: Int) throws -> [Verb] {
+        var descriptor = FetchDescriptor<VerbEntity>(
+            sortBy: [SortDescriptor(\.original.content)]
+        )
+        descriptor.fetchOffset = offset
+        descriptor.fetchLimit = limit
+        let entities = try modelContext.fetch(descriptor)
+        return entities.map { VerbMapper.toDomain($0) }
+    }
 }
 
 enum VerbRepositoryError: LocalizedError {

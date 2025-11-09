@@ -1,6 +1,7 @@
 import XCTest
 @testable import irregular_verbs
 
+@MainActor
 final class GetAllVerbsUseCaseTests: XCTestCase {
     
     // MARK: - Properties
