@@ -2,14 +2,15 @@ import Foundation
 import SwiftData
 
 @MainActor
-class VerbRepository: ObservableObject {
+final class VerbRepository: VerbRepositoryProtocol, ObservableObject {
     private let modelContext: ModelContext
     
     init(modelContext: ModelContext) {
         self.modelContext = modelContext
     }
     
-    // Checks if the repository is empty
+    // MARK: - VerbRepositoryProtocol
+    
     func isEmpty() -> Bool {
         let descriptor = FetchDescriptor<VerbEntity>()
         do {
@@ -21,15 +22,12 @@ class VerbRepository: ObservableObject {
         }
     }
     
-    // Reads data from JSON and writes to SwiftData
     func loadFromJSONIfNeeded() async throws {
-        // If repository is not empty, skip writing
         guard isEmpty() else {
             print("Repository already contains data, skipping JSON load")
             return
         }
         
-        // Read JSON file
         guard let url = Bundle.main.url(forResource: "all", withExtension: "json", subdirectory: "Resources/verbs") else {
             throw VerbRepositoryError.jsonFileNotFound
         }
@@ -37,43 +35,47 @@ class VerbRepository: ObservableObject {
         let data = try Data(contentsOf: url)
         let verbs = try JSONDecoder().decode([Verb].self, from: data)
         
-        // Convert to VerbEntity and save
         for verb in verbs {
-            let verbEntity = VerbEntity(from: verb)
+            let verbEntity = VerbMapper.toEntity(verb)
             modelContext.insert(verbEntity)
         }
         
-        // Save changes
         try modelContext.save()
         print("Successfully loaded \(verbs.count) verbs from JSON")
     }
     
-    // Get all verbs
-    func getAllVerbs() throws -> [VerbEntity] {
+    func getAllVerbs() throws -> [Verb] {
         let descriptor = FetchDescriptor<VerbEntity>(
             sortBy: [SortDescriptor(\.original.content)]
         )
-        return try modelContext.fetch(descriptor)
+        let entities = try modelContext.fetch(descriptor)
+        return entities.map { VerbMapper.toDomain($0) }
     }
     
-    // Get verb by ID
-    func getVerb(by id: UUID) throws -> VerbEntity? {
+    func getVerb(by id: UUID) throws -> Verb? {
         let descriptor = FetchDescriptor<VerbEntity>(
             predicate: #Predicate { $0.id == id }
         )
-        return try modelContext.fetch(descriptor).first
+        guard let entity = try modelContext.fetch(descriptor).first else {
+            return nil
+        }
+        return VerbMapper.toDomain(entity)
     }
     
-    // Add verb
     func addVerb(_ verb: Verb) throws {
-        let verbEntity = VerbEntity(from: verb)
+        let verbEntity = VerbMapper.toEntity(verb)
         modelContext.insert(verbEntity)
         try modelContext.save()
     }
     
-    // Delete verb
-    func deleteVerb(_ verbEntity: VerbEntity) throws {
-        modelContext.delete(verbEntity)
+    func deleteVerb(_ verb: Verb) throws {
+        let descriptor = FetchDescriptor<VerbEntity>(
+            predicate: #Predicate { $0.id == verb.id }
+        )
+        guard let entity = try modelContext.fetch(descriptor).first else {
+            return
+        }
+        modelContext.delete(entity)
         try modelContext.save()
     }
 }
@@ -88,4 +90,3 @@ enum VerbRepositoryError: LocalizedError {
         }
     }
 }
-

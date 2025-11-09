@@ -10,7 +10,7 @@ import XCTest
 final class irregular_verbsUITestsLaunchTests: XCTestCase {
 
     override class var runsForEachTargetApplicationUIConfiguration: Bool {
-        true
+        true // Automatically test all orientation and appearance combinations
     }
 
     override func setUpWithError() throws {

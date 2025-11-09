@@ -29,14 +29,23 @@ struct irregular_verbsApp: App {
         WindowGroup {
             ContentView()
                 .task {
-                    // Check repository when app launches and load from JSON if needed
+                    // Load verbs from JSON if needed using UseCase
+                    // Skip in test environment
+                    guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+                        return // Running in test environment
+                    }
+                    
                     let modelContext = sharedModelContainer.mainContext
                     let repository = VerbRepository(modelContext: modelContext)
+                    let loadVerbsUseCase = LoadVerbsFromJSONUseCase(repository: repository)
                     
                     do {
-                        try await repository.loadFromJSONIfNeeded()
+                        try await loadVerbsUseCase.execute()
                     } catch {
+                        // Only print in debug mode
+                        #if DEBUG
                         print("Error loading verbs from JSON: \(error)")
+                        #endif
                     }
                 }
         }
