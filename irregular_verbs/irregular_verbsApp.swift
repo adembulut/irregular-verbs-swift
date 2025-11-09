@@ -12,7 +12,9 @@ import SwiftData
 struct irregular_verbsApp: App {
     var sharedModelContainer: ModelContainer = {
         let schema = Schema([
-            Item.self,
+            VerbEntity.self,
+            WordEntity.self,
+            TranslationEntity.self,
         ])
         let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
 
@@ -26,6 +28,17 @@ struct irregular_verbsApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()
+                .task {
+                    // Check repository when app launches and load from JSON if needed
+                    let modelContext = sharedModelContainer.mainContext
+                    let repository = VerbRepository(modelContext: modelContext)
+                    
+                    do {
+                        try await repository.loadFromJSONIfNeeded()
+                    } catch {
+                        print("Error loading verbs from JSON: \(error)")
+                    }
+                }
         }
         .modelContainer(sharedModelContainer)
     }
